@@ -106,6 +106,31 @@ afterEach(() => {
 });
 
 describe("automation Events page", () => {
+  it("uses a browser-valid pattern for webhook source IDs", async () => {
+    server.use(
+      http.get("*/api/automation/v1/webhooks", () =>
+        HttpResponse.json({ webhooks: [], total: 0 }),
+      ),
+    );
+    renderEvents();
+    await screen.findByText(I18nKey.AUTOMATIONS$EVENTS$EMPTY);
+    await userEvent.click(
+      screen.getByRole("button", { name: I18nKey.AUTOMATIONS$EVENTS$ADD }),
+    );
+    const sourceIdField = screen.getByRole("textbox", {
+      name: I18nKey.AUTOMATIONS$EVENTS$SOURCE,
+    });
+    const pattern = sourceIdField.getAttribute("pattern");
+    expect(pattern).not.toBeNull();
+    const validateSourceId = new RegExp(`^(?:${pattern})$`, "v");
+
+    expect(validateSourceId.test("issues")).toBe(true);
+    expect(validateSourceId.test("my-source-1")).toBe(true);
+    expect(validateSourceId.test("QA_bad id")).toBe(false);
+    expect(validateSourceId.test("-issues")).toBe(false);
+    expect(validateSourceId.test("issues-")).toBe(false);
+  });
+
   it("admits the declared route, shows the reachability notice, and lists paginated sources", async () => {
     server.use(
       http.get("*/api/automation/v1/webhooks", ({ request }) => {
